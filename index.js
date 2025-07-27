@@ -12,9 +12,8 @@ app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 
 // Test route
-app.get('/', (req, res) => {
-  res.send('API is running...');
-});
+const productRoutes = require('./routes/products');
+app.use('/api/products', productRoutes);
 
 // DB Connection
 mongoose.connect(process.env.MONGODB_URI, {
