@@ -14,6 +14,9 @@ app.use('/uploads', express.static('uploads'));
 // Test route
 const productRoutes = require('./routes/products');
 app.use('/api/products', productRoutes);
+router.get('/', (req, res) => {
+  res.json({ message: "Products API working" });
+});
 
 // DB Connection
 mongoose.connect(process.env.MONGODB_URI, {
