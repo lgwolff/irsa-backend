@@ -1,15 +1,29 @@
 const express = require('express');
 const router = express.Router();
 const Product = require('../models/Product');
+const multer = require('multer');
+const csv = require('csv-parse');
+const fs = require('fs');
+const path = require('path');
+
+// Multer setup: no file size limit, store in uploads folder temporarily
+const upload = multer({
+  dest: 'uploads/',
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'text/csv' || file.originalname.endsWith('.csv')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only CSV files are allowed'));
+    }
+  },
+});
 
 // GET /api/products - get all products
 router.get('/', async (req, res) => {
   try {
-    console.log('📥 GET /api/products hit'); // 👈 LOG THIS
-
+    console.log('📥 GET /api/products hit');
     const products = await Product.find().sort({ createdAt: -1 });
-    console.log('📦 Products:', products); // 👈 LOG PRODUCTS
-
+    console.log('📦 Products:', products);
     res.json(products);
   } catch (error) {
     console.error('❌ Error fetching products:', error);
@@ -28,7 +42,7 @@ router.post('/', async (req, res) => {
       images,
       tags,
       category,
-      stock
+      stock,
     });
     const savedProduct = await product.save();
     res.status(201).json(savedProduct);
@@ -36,6 +50,7 @@ router.post('/', async (req, res) => {
     res.status(400).json({ message: 'Invalid data', error: error.message });
   }
 });
+
 // DELETE /api/products/:id - delete product
 router.delete('/:id', async (req, res) => {
   try {
@@ -62,6 +77,7 @@ router.put('/:id/deactivate', async (req, res) => {
     res.status(500).json({ message: 'Server error updating product status' });
   }
 });
+
 // PUT /api/products/:id - update product details
 router.put('/:id', async (req, res) => {
   try {
@@ -80,6 +96,7 @@ router.put('/:id', async (req, res) => {
     res.status(400).json({ message: 'Invalid data', error: err.message });
   }
 });
+
 // GET /api/products/:id - get single product by ID
 router.get('/:id', async (req, res) => {
   try {
@@ -91,6 +108,71 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// POST /api/products/bulk-upload - upload CSV and add products in bulk
+router.post('/bulk-upload', upload.single('file'), (req, res) => {
+  if (!req.file) return res.status(400).json({ message: 'CSV file is required' });
+
+  const filePath = path.resolve(req.file.path);
+  const productsToInsert = [];
+  const errors = [];
+  let rowCount = 0;
+
+  fs.createReadStream(filePath)
+    .pipe(csv({
+      columns: true,
+      skip_empty_lines: true,
+      trim: true,
+    }))
+    .on('data', (row) => {
+      rowCount++;
+      const { name, description, price, images, tags, category, stock } = row;
+
+      if (!name || !description || !price || !category) {
+        errors.push({ row: rowCount, error: 'Missing required fields' });
+        return;
+      }
+
+      const product = {
+        name: name.trim(),
+        description: description.trim(),
+        price: parseFloat(price),
+        images: images ? images.split(',').map(s => s.trim()) : [],
+        tags: tags ? tags.split(',').map(s => s.trim()) : [],
+        category: category.trim(),
+        stock: stock ? parseInt(stock) : 0,
+        createdAt: new Date(),
+      };
+
+      if (isNaN(product.price) || product.price < 0) {
+        errors.push({ row: rowCount, error: 'Invalid price' });
+        return;
+      }
+      if (isNaN(product.stock) || product.stock < 0) {
+        errors.push({ row: rowCount, error: 'Invalid stock' });
+        return;
+      }
+
+      productsToInsert.push(product);
+    })
+    .on('end', async () => {
+      try {
+        const inserted = await Product.insertMany(productsToInsert);
+        fs.unlinkSync(filePath); // clean temp file
+
+        res.json({
+          message: 'Bulk upload finished',
+          insertedCount: inserted.length,
+          errorCount: errors.length,
+          errors,
+        });
+      } catch (insertErr) {
+        res.status(500).json({ message: 'DB insert error', error: insertErr.message });
+      }
+    })
+    .on('error', (err) => {
+      fs.unlinkSync(filePath);
+      res.status(400).json({ message: 'CSV parse error', error: err.message });
+    });
+});
 
 module.exports = router;
-
