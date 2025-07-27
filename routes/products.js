@@ -5,12 +5,18 @@ const Product = require('../models/Product');
 // GET /api/products - get all products
 router.get('/', async (req, res) => {
   try {
+    console.log('📥 GET /api/products hit'); // 👈 LOG THIS
+
     const products = await Product.find().sort({ createdAt: -1 });
+    console.log('📦 Products:', products); // 👈 LOG PRODUCTS
+
     res.json(products);
   } catch (error) {
+    console.error('❌ Error fetching products:', error);
     res.status(500).json({ message: 'Server Error' });
   }
 });
+
 // POST /api/products - add a new product
 router.post('/', async (req, res) => {
   try {
