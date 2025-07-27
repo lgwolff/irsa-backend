@@ -36,6 +36,32 @@ router.post('/', async (req, res) => {
     res.status(400).json({ message: 'Invalid data', error: error.message });
   }
 });
+// DELETE /api/products/:id - delete product
+router.delete('/:id', async (req, res) => {
+  try {
+    const deleted = await Product.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ message: 'Product not found' });
+    res.json({ message: 'Product deleted' });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error deleting product' });
+  }
+});
+
+// PUT /api/products/:id/deactivate - toggle product active status
+router.put('/:id/deactivate', async (req, res) => {
+  try {
+    const { deactivate } = req.body;
+    const product = await Product.findById(req.params.id);
+    if (!product) return res.status(404).json({ message: 'Product not found' });
+
+    product.deactivated = deactivate;
+    await product.save();
+
+    res.json({ message: 'Product status updated', deactivated: product.deactivated });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error updating product status' });
+  }
+});
 
 module.exports = router;
 
