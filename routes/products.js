@@ -62,6 +62,25 @@ router.put('/:id/deactivate', async (req, res) => {
     res.status(500).json({ message: 'Server error updating product status' });
   }
 });
+// PUT /api/products/:id - update product details
+router.put('/:id', async (req, res) => {
+  try {
+    const updateData = req.body;
+    updateData.updatedAt = new Date();
+
+    const updatedProduct = await Product.findByIdAndUpdate(req.params.id, updateData, {
+      new: true,
+      runValidators: true,
+    });
+
+    if (!updatedProduct) return res.status(404).json({ message: 'Product not found' });
+
+    res.json({ message: 'Product updated', product: updatedProduct });
+  } catch (err) {
+    res.status(400).json({ message: 'Invalid data', error: err.message });
+  }
+});
+
 
 module.exports = router;
 
