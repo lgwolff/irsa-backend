@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Product = require('../models/Product');
 const multer = require('multer');
-const csv = require('csv-parse');
+const { parse } = require('csv-parse');
 const fs = require('fs');
 const path = require('path');
 
@@ -118,7 +118,7 @@ router.post('/bulk-upload', upload.single('file'), (req, res) => {
   let rowCount = 0;
 
   fs.createReadStream(filePath)
-    .pipe(csv({
+    .pipe(parse({
       columns: true,
       skip_empty_lines: true,
       trim: true,
@@ -174,13 +174,6 @@ router.post('/bulk-upload', upload.single('file'), (req, res) => {
       res.status(400).json({ message: 'CSV parse error', error: err.message });
     });
 });
-router.get('/categories', async (req, res) => {
-  try {
-    const categories = await Product.distinct('category');
-    res.json(categories);
-  } catch (err) {
-    res.status(500).json({ message: 'Error fetching categories' });
-  }
-});
+
 
 module.exports = router;
