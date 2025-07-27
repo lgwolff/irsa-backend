@@ -11,10 +11,6 @@ router.get('/', async (req, res) => {
     res.status(500).json({ message: 'Server Error' });
   }
 });
-router.get('/', (req, res) => {
-  res.json({ message: "Products API working" });
-});
-
 // POST /api/products - add a new product
 router.post('/', async (req, res) => {
   try {
