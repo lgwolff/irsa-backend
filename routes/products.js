@@ -137,7 +137,7 @@ router.post('/bulk-upload', upload.single('file'), (req, res) => {
         description: description.trim(),
         price: parseFloat(price),
         images: images ? images.split(',').map(s => s.trim()) : [],
-        tags: tags ? tags.split(',').map(s => s.trim()) : [],
+        tags: tags ? tags.replace(/[“”]/g, '"').split(',').map(s => s.trim()) : [],
         category: category.trim(),
         stock: stock ? parseInt(stock) : 0,
         createdAt: new Date(),
