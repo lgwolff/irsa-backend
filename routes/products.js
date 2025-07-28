@@ -19,17 +19,16 @@ const upload = multer({
 });
 
 // GET /api/products - get all products
+// Inside routes/products.js
 router.get('/', async (req, res) => {
   try {
-    console.log('📥 GET /api/products hit');
-    const products = await Product.find().sort({ createdAt: -1 });
-    console.log('📦 Products:', products);
+    const products = await Product.find({}, 'name category price stock deactivated slug'); // include slug here
     res.json(products);
-  } catch (error) {
-    console.error('❌ Error fetching products:', error);
-    res.status(500).json({ message: 'Server Error' });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
   }
 });
+
 
 // GET /api/products/slug/:slug - get product by slug
 router.get('/slug/:slug', async (req, res) => {
